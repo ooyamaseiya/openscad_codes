@@ -5,7 +5,7 @@ left_w       = 10;   // 左側ブロックの幅
 left_h       = 2;    // 左側ブロックの厚み (高さ)
 
 pillar_w     = 2;    // 中央ピラーの幅
-pillar_top_h = 11;   // 左側上面からピラー頂面までの高さ
+pillar_top_h = 12;   // 左側上面からピラー頂面までの高さ
 total_h      = left_h + pillar_top_h; // 全高 (2 + 11 = 13mm)
 
 right_w      = 9;    // 右側ブロックの幅

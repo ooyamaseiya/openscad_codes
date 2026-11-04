@@ -1,0 +1,52 @@
+// ==========================================
+// 10cm x 10cm ゴミ箱用 ハの字足付きベースプレート（フラット版）
+// Units: mm
+// ==========================================
+
+$fn = 64;
+
+// --- パラメータ設定 ---
+bin_width = 100;       // ゴミ箱の幅 (10cm)
+bin_depth = 100;       // ゴミ箱の奥行き (10cm)
+plate_thick = 5;       // 底板の厚さ
+
+leg_height = 30;       // 床からのクリアランス (高さ)
+leg_top_size = 14;     // 脚の上部サイズ（プレート内での結合サイズ）
+leg_bottom_size = 10;  // 脚の底面サイズ
+splay_angle = 12;      // ハの字の開き角度 (度)
+
+// 脚の取付位置（プレートの四隅付近に配置）
+leg_offset_x = (bin_width / 2) - 12;
+leg_offset_y = (bin_depth / 2) - 12;
+
+module base_plate() {
+    // 完全にフラットな底板本体 (Z中心を 0 に配置)
+    cube([bin_width, bin_depth, plate_thick], center=true);
+}
+
+module splayed_legs() {
+    // ハの字による外側へのシフト量計算
+    shift = leg_height * tan(splay_angle);
+
+    // 4本の足をループで対称に配置
+    for (nx = [-1, 1], ny = [-1, 1]) {
+        translate([nx * leg_offset_x, ny * leg_offset_y, 0])
+        hull() {
+            // 1. プレートの厚みの中に上部を完全に埋め込む
+            translate([0, 0, 0])
+                cube([leg_top_size, leg_top_size, plate_thick], center=true);
+            
+            // 2. 接地側の足先（ハの字に外側へ広げる）
+            translate([nx * shift, ny * shift, -leg_height - (plate_thick/2)])
+                cube([leg_bottom_size, leg_bottom_size, 1], center=true);
+        }
+    }
+}
+
+// --- 総合アセンブリ ---
+union() {
+    base_plate();
+    splayed_legs();
+}
+
+

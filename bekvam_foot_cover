@@ -1,0 +1,57 @@
+/ ==========================================
+// IKEA BEKVÄM 角度付き脚カバー（前後個別対応）
+// ==========================================
+
+// --- パラメータ設定 ---
+leg_w = 26.5;          // 脚の幅 (mm)
+leg_d = 26.5;          // 脚の奥行き (mm)
+tolerance = 0.6;       // クリアランス (mm)
+
+wall_thick = 2.0;      // 側面の肉厚 (mm)
+base_thick = 3.0;      // 底面の最小肉厚 (mm)
+cover_height = 10.0;   // 差し込み深さ (mm)
+corner_radius = 4.0;   // 角丸半径 (mm)
+
+// --- 傾斜角度の設定 (度) ---
+// 実測に合わせて調整してください（前脚・後脚で変える場合）
+angle_x = 5.0;         // 左右方向の外開き角度
+angle_y = 7.0;         // 前後方向の開き角度（前脚と後脚でここを変更）
+
+// --- 計算値 ---
+inner_w = leg_w + tolerance;
+inner_d = leg_d + tolerance;
+outer_w = inner_w + (wall_thick * 2);
+outer_d = inner_d + (wall_thick * 2);
+total_h = cover_height + base_thick + 10.0; // カット用の余白
+
+module rounded_box(w, d, h, r) {
+    linear_extrude(height = h)
+    minkowski() {
+        square([w - (r * 2), d - (r * 2)], center = true);
+        circle(r = r, $fn = 32);
+    }
+}
+
+module angled_leg_cover() {
+    difference() {
+        // 全体を角度分傾けてから、底面を水平にカットする
+        intersection() {
+            // 傾けた本体
+            rotate([angle_y, angle_x, 0])
+            difference() {
+                rounded_box(outer_w, outer_d, total_h, corner_radius);
+                
+                // 内側の差し込み穴
+                translate([0, 0, base_thick])
+                rounded_box(inner_w, inner_d, total_h, max(0.5, corner_radius - wall_thick));
+            }
+            
+            // 床面（z=0 以上）でクランプして底をフラットにする
+            translate([-50, -50, 0])
+            cube([100, 100, cover_height + base_thick]);
+        }
+    }
+}
+
+angled_leg_cover();
+

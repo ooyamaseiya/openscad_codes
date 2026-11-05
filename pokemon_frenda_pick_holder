@@ -1,0 +1,149 @@
+// ==========================================
+// ポケモンフレンダ用 A5縦・長辺綴じ 8枚収納ボード
+// PLAベース（左長辺バインダー穴） ＆ TPUスルーホルダー（横向き）
+// ==========================================
+
+$fn = 64;
+
+// --- 出力パートの切り替え ---
+// "pla_base"   : PLAベースプレート（左長辺バインダー穴付き）を出力
+// "tpu_holder" : TPUホルダー（8個を印刷用に整列）を出力
+// "assembly"   : 組み立て状態を確認
+part = "assembly"; 
+
+// --- パラメータ設定 ---
+a5_w        = 160.0;  // A5縦の幅
+a5_h        = 210.0;  // A5縦の高さ（長辺）
+plate_thick = 4.0;    // ベースプレートの厚み
+
+// バインダーマージン（左側の長辺に設ける穴あけ用スペース）
+margin_left = 10.0;   
+
+// ピック寸法（横向き配置：短辺と長辺を入れ替え）
+pick_w      = 62.8;   // ピックの長辺 (実測+ゆとり)
+pick_h      = 38.4;   // ピックの短辺 (実測+ゆとり)
+tolerance   = 0.8;    // クリアランス
+
+cols        = 2;      // 横2列
+rows        = 4;      // 縦4段（計8枚）
+
+// TPUホルダーの外寸設定（横向き用）
+tpu_wall    = 2.0;
+slot_w      = pick_w + tolerance;
+slot_h      = pick_h + tolerance;
+tpu_outer_w = slot_w + tpu_wall * 2;
+tpu_outer_h = slot_h + tpu_wall * 2;
+tpu_depth   = 4.5;    // TPUホルダーの厚み
+
+// A5縦エリア内での自動配置計算
+storage_area_w = a5_w - margin_left;
+grid_total_w   = cols * tpu_outer_w + (cols - 1) * 6;
+grid_total_h   = rows * tpu_outer_h + (rows - 1) * 6;
+
+start_x     = margin_left + (storage_area_w - grid_total_w) / 2;
+start_y     = (a5_h - grid_total_h) / 2;
+spacing_x   = tpu_outer_w + 6;
+spacing_y   = tpu_outer_h + 6;
+
+// --- バインダー穴の設定 (左側長辺 210mm側) ---
+hole_r      = 2.75;   // 穴の半径 (直径5.5mm)
+hole_pitch  = 9.525;  // 穴の間隔 (A5 JIS規格: 9.525mm)
+hole_count  = 18;     // 長辺側に配置する穴の数
+hole_x_pos  = 7.0;    // 左端から穴の中心までの距離
+
+// 角丸キューブ生成モジュール
+module rounded_cube(size, radius) {
+    x = size[0]; y = size[1]; z = size[2];
+    hull() {
+        translate([radius, radius, 0]) cylinder(r=radius, h=z);
+        translate([x - radius, radius, 0]) cylinder(r=radius, h=z);
+        translate([radius, y - radius, 0]) cylinder(r=radius, h=z);
+        translate([x - radius, y - radius, 0]) cylinder(r=radius, h=z);
+    }
+}
+
+// --- 1. PLA ベースプレート ---
+module pla_base_plate() {
+    difference() {
+        // A5縦サイズの外枠
+        color("DimGray")
+            rounded_cube([a5_w, a5_h, plate_thick], 4);
+        
+        // ① TPUホルダー埋め込み用ポケット
+        for (c = [0 : cols - 1]) {
+            for (r = [0 : rows - 1]) {
+                x = start_x + c * spacing_x;
+                y = start_y + r * spacing_y;
+                translate([x, y, -1])
+                    rounded_cube([tpu_outer_w, tpu_outer_h, plate_thick + 2], 2);
+            }
+        }
+        
+        // ② バインダー穴（左側の長辺に沿って連続して打ち抜き）
+        hole_start_y = (a5_h - (hole_count - 1) * hole_pitch) / 2;
+        for (i = [0 : hole_count - 1]) {
+            translate([hole_x_pos, hole_start_y + i * hole_pitch, -1])
+                cylinder(r=hole_r, h=plate_thick + 2);
+        }
+    }
+}
+
+// --- 2. TPU ピックホルダー（横向き・底面スルー構造） ---
+module tpu_holder_single() {
+    lip_w = 1.8; // ピック落下防止のフチ幅
+    
+    difference() {
+        // 外枠
+        rounded_cube([tpu_outer_w, tpu_outer_h, tpu_depth], 2);
+        
+        // ピック挿入スペース（横向き）
+        translate([tpu_wall, tpu_wall, 1.0])
+            rounded_cube([slot_w, slot_h, tpu_depth + 1], 1.5);
+        
+        // 底面完全貫通穴
+        translate([tpu_wall + lip_w, tpu_wall + lip_w, -1])
+            rounded_cube([slot_w - lip_w * 2, slot_h - lip_w * 2, tpu_depth + 2], 1.0);
+    }
+    
+    // スナップフィット用リブ（横向き用に左右側面に配置）
+    snap_h = 0.35;
+    translate([tpu_wall, tpu_wall + slot_h/2 - 6, tpu_depth - 1.5])
+        cube([snap_h, 12, 1.0]);
+    translate([tpu_wall + slot_w - snap_h, tpu_wall + slot_h/2 - 6, tpu_depth - 1.5])
+        cube([snap_h, 12, 1.0]);
+}
+
+// --- 3. アセンブリ表示 ---
+module tpu_holders_assembly() {
+    color("DodgerBlue")
+    for (c = [0 : cols - 1]) {
+        for (r = [0 : rows - 1]) {
+            x = start_x + c * spacing_x;
+            y = start_y + r * spacing_y;
+            translate([x, y, 0])
+                tpu_holder_single();
+        }
+    }
+}
+
+// --- 4. TPUホルダー印刷用レイアウト（8個） ---
+module tpu_holders_print_layout() {
+    for (c = [0 : cols - 1]) {
+        for (r = [0 : rows - 1]) {
+            translate([c * (tpu_outer_w + 4), r * (tpu_outer_h + 4), 0])
+                tpu_holder_single();
+        }
+    }
+}
+
+// --- 実行制御 ---
+if (part == "pla_base") {
+    pla_base_plate();
+} else if (part == "tpu_holder") {
+    tpu_holders_print_layout();
+} else {
+    pla_base_plate();
+    tpu_holders_assembly();
+}
+
+

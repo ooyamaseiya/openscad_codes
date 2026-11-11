@@ -1,0 +1,65 @@
+// ==========================================
+// IKEA VARIERA 引き出し化ハンガーレール（底面スロープ修正版・左右反転）
+// ==========================================
+
+$fn = 40;
+
+// --- 基本パラメータ ---
+total_length  = 200; // 全長 (mm)
+thickness     = 2;   // 板厚 (mm)
+height        = 21;  // 垂直高さ (mm)
+top_width     = 12;  // 天面取り付けフランジ幅 (mm)
+bottom_width  = 10;  // 底面受けレール幅 (mm)
+
+// --- 手前スロープ（ガイド）パラメータ ---
+slope_length  = 80;  // スロープの前後長さ (mm)
+slope_drop    = 10;  // 手前先端で底面レールが下がる量 (mm)
+
+// --- ビス穴 ---
+hole_diameter = 3.2; // ビス穴径 (mm)
+hole1_y       = 50;  // 手前からのビス穴1 (mm)
+hole2_y       = 150; // 手前からのビス穴2 (mm)
+
+mirror([1, 0, 0]) {
+    difference() {
+        union() {
+            // 1. 垂直リブ（奥から手前まで真っ直ぐ一定）
+            translate([0, 0, 0])
+                cube([thickness, total_length, height]);
+
+            // 2. 天面取り付けフランジ（棚板裏に固定する水平面）
+            translate([-top_width, 0, height - thickness])
+                cube([top_width, total_length, thickness]);
+
+            // 3. 底面受けレール：奥のストレート区間
+            translate([thickness, slope_length, 0])
+                cube([bottom_width, total_length - slope_length, thickness]);
+
+            // 4. 底面受けレール：手前の導入スロープ区間
+            hull() {
+                // 手前先端 (Y=0) : 下に slope_drop 分下がった位置
+                translate([thickness, 0, -slope_drop])
+                    cube([bottom_width, 0.1, thickness]);
+
+                // スロープ終端 (Y=slope_length) : 通常の底面高さ
+                translate([thickness, slope_length - 0.1, 0])
+                    cube([bottom_width, 0.1, thickness]);
+            }
+
+            // 5. リブと下がりスロープをつなぐ補強壁（スロープ区間のリブ下部）
+            hull() {
+                translate([0, 0, -slope_drop])
+                    cube([thickness, 0.1, slope_drop + thickness]);
+                translate([0, slope_length - 0.1, 0])
+                    cube([thickness, 0.1, thickness]);
+            }
+        }
+
+        // --- ビス穴のくり抜き ---
+        translate([-top_width / 2, hole1_y, height - thickness - 1])
+            cylinder(d = hole_diameter, h = thickness + 2);
+
+        translate([-top_width / 2, hole2_y, height - thickness - 1])
+            cylinder(d = hole_diameter, h = thickness + 2);
+    }
+}
